@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: csv-processing-pipeline-
+spec:
+  entrypoint: full-pipeline
+  volumeClaimTemplates:
+    - metadata:
+        name: shared-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi
+
+  templates:
+    - name: full-pipeline
+      dag:
+        tasks:
+          - name: upload-csv
+            template: upload-step
+
+          - name: chunk-csv
+            template: chunk-step
+            dependencies: [upload-csv]
+
+          - name: process-chunks
+            template: process-step
+            dependencies: [chunk-csv]
+
+    - name: upload-step
+      container:
+        image: csv-pipeline:latest
+        command: ["python3"]
+        args: ["uploader/send_to_kafka.py"]
+        volumeMounts:
+          - mountPath: /app/data
+            name: shared-data
+
+    - name: chunk-step
+      container:
+        image: csv-pipeline:latest
+        command: ["python3"]
+        args: ["consumer/chunk_dispatcher.py"]
+        volumeMounts:
+          - mountPath: /app/data
+            name: shared-data
+
+    - name: process-step
+      container:
+        image: csv-pipeline:latest
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            for f in /app/data/chunks/*.csv; do
+              python3 processor/process_chunk.py "$f";
+            done
+        volumeMounts:
+          - mountPath: /app/data
+            name: shared-data
