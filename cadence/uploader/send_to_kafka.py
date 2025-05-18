@@ -3,11 +3,12 @@ from kafka import KafkaProducer
 import json
 
 KAFKA_TOPIC = "csv_files"
-KAFKA_BROKER = "localhost:9092"
-UPLOAD_DIR = "data/uploads"
+KAFKA_BROKER = "host.minikube.internal:9092"
+UPLOAD_DIR = "/app/data/uploads" 
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
+    api_version=(2, 6),
     value_serializer=lambda v: json.dumps(v).encode("utf-8")
 )
 

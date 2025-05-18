@@ -4,13 +4,13 @@ from kafka import KafkaConsumer, KafkaProducer
 import json
 from pathlib import Path
 
-KAFKA_BROKER = "localhost:9092"
+KAFKA_BROKER = "host.minikube.internal:9092"
 CONSUME_TOPIC = "csv_files"
 PRODUCE_TOPIC = "csv_chunks"
 CHUNK_SIZE = 10000  # rows per chunk
-CHUNK_DIR = "data/chunks"
+CHUNK_DIR = "/app/data/chunks"  # absolute path in container
 
-# Setup Kafka
+# Kafka setup
 consumer = KafkaConsumer(
     CONSUME_TOPIC,
     bootstrap_servers=KAFKA_BROKER,
@@ -35,7 +35,7 @@ def chunk_csv(file_path, file_name):
             chunk.to_csv(chunk_path, index=False)
             print(f"Created: {chunk_path}")
 
-            # publish chunk info
+            # Publish chunk info
             producer.send(PRODUCE_TOPIC, {
                 "original_file": file_name,
                 "chunk_file": chunk_path,

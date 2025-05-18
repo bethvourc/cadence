@@ -2,6 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: csv-processing-pipeline-
+  namespace: argo  
 spec:
   entrypoint: full-pipeline
   volumeClaimTemplates:
@@ -30,31 +31,34 @@ spec:
 
     - name: upload-step
       container:
-        image: csv-pipeline:latest
+        image: bethvourc/csv-pipeline:latest
         command: ["python3"]
         args: ["uploader/send_to_kafka.py"]
+        workingDir: /app
         volumeMounts:
           - mountPath: /app/data
             name: shared-data
 
     - name: chunk-step
       container:
-        image: csv-pipeline:latest
+        image: bethvourc/csv-pipeline:latest
         command: ["python3"]
         args: ["consumer/chunk_dispatcher.py"]
+        workingDir: /app
         volumeMounts:
           - mountPath: /app/data
             name: shared-data
 
     - name: process-step
       container:
-        image: csv-pipeline:latest
+        image: bethvourc/csv-pipeline:latest
         command: ["/bin/sh", "-c"]
         args:
           - |
             for f in /app/data/chunks/*.csv; do
               python3 processor/process_chunk.py "$f";
             done
+        workingDir: /app
         volumeMounts:
           - mountPath: /app/data
             name: shared-data
